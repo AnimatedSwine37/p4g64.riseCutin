@@ -1,0 +1,24 @@
+{
+  "ModId": "p4g64.riseCutin",
+  "ModName": "Rise Cutins",
+  "ModAuthor": "AnimatedSwine37",
+  "ModVersion": "1.0.0",
+  "ModDescription": "Adds a cutin when Rise uses her assist skills in battle",
+  "ModDll": "p4g64.riseCutin.dll",
+  "ModIcon": "Preview.png",
+  "ModR2RManagedDll32": "x86/p4g64.riseCutin.dll",
+  "ModR2RManagedDll64": "x64/p4g64.riseCutin.dll",
+  "ModNativeDll32": "",
+  "ModNativeDll64": "",
+  "IsLibrary": false,
+  "ReleaseMetadataFileName": "p4g64.riseCutin.ReleaseMetadata.json",
+  "PluginData": {},
+  "IsUniversalMod": false,
+  "ModDependencies": [
+    "reloaded.sharedlib.hooks",
+    "Reloaded.Memory.SigScan.ReloadedII"
+  ],
+  "OptionalDependencies": [],
+  "SupportedAppId": ["p4g.exe"],
+  "ProjectUrl": ""
+}
