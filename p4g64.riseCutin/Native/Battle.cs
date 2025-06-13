@@ -7,12 +7,20 @@ namespace p4g64.riseCutin.Native;
 
 public unsafe class Battle
 {
-    internal RunActionDelegate StartAction { get; private set; }
+    internal NewActionDelegate NewAction { get; private set; }
+    internal StartActionDelegate StartAction { get; private set; }
     internal NewCutinActionDelegate NewCutinAction { get; private set; }
     internal NewCutinDrawActionDelegate NewCutinDrawAction { get; private set; }
+    internal nuint PlaySoundEffectActionFunc { get; private set; } 
 
     internal Battle(IReloadedHooks hooks)
     {
+        SigScan("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 8B F9 8B EA", "Btl::Action::NewAction",
+            address =>
+            {
+                NewAction = hooks.CreateWrapper<NewActionDelegate>(address, out _);
+            });
+        
         SigScan("48 89 5C 24 ?? 57 48 83 EC 20 48 8B D9 8B FA 48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? BA 14 00 00 00", "Btl::UI::NewCutinAction",
             address =>
             {
@@ -25,17 +33,24 @@ public unsafe class Battle
                 NewCutinDrawAction = hooks.CreateWrapper<NewCutinDrawActionDelegate>(address, out _);
             });
         
-        SigScan("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 48 8B D9 0F B6 F2", "Btl::Action::RunAction", address =>
+        SigScan("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 48 8B D9 0F B6 F2", "Btl::Action::StartAction", address =>
         {
-            StartAction = hooks.CreateWrapper<RunActionDelegate>(address, out _);
+            StartAction = hooks.CreateWrapper<StartActionDelegate>(address, out _);
         });
+        
+        SigScan("40 57 48 83 EC 20 48 8B F9 48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 0F B7 0F", "Btl::Action::PlaySoundEffect",
+            address =>
+            {
+                PlaySoundEffectActionFunc = (nuint)address;
+            });
     }
 
     internal delegate BtlAction* NewCutinActionDelegate(BtlCutinArgs* cutinArgs, uint param2);
 
     internal delegate BtlAction* NewCutinDrawActionDelegate(int param1, int param2);
 
-    internal delegate nuint RunActionDelegate(BtlAction* action, byte param2);
+    internal delegate nuint StartActionDelegate(BtlAction* action, byte param2);
+    internal delegate BtlAction* NewActionDelegate(int param1, int dataSize);
 
     [StructLayout(LayoutKind.Explicit)]
     internal struct BtlAction
@@ -49,6 +64,12 @@ public unsafe class Battle
         [FieldOffset(0x98)] internal long Id;
 
         [FieldOffset(0xa0)] internal nuint Unk4;
+
+        // Pointer to the arbitrary data passed to the functions of this action
+        [FieldOffset(0xc8)] internal void* DataPtr;
+        
+        // Pointer to the function that is run with this action
+        [FieldOffset(0xb0)] internal nuint RunFunc;
     }
 
     [InlineArray(4)]
@@ -75,6 +96,17 @@ public unsafe class Battle
 
         [FieldOffset(2)]
         internal PartyMember PartyMember;
+    }
+
+    // Args to PlaySoundEffect, identifies the sound to play (not certain how)
+    [StructLayout(LayoutKind.Explicit, Size = 6)]
+    internal struct PlaySoundEffectActionData
+    {
+        [FieldOffset(0)] internal short Unk1;
+        
+        [FieldOffset(2)] internal short Unk2;
+
+        [FieldOffset(4)] internal short SoundId;
     }
 
     internal enum BtlCutinType: short

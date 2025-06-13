@@ -38,6 +38,17 @@ public unsafe class AssistHook
         drawAction->Dependencies[0].Type = 4;
         drawAction->Dependencies[0].ActionId = cutinAction->Id;
         _battle.StartAction(drawAction, 1);
+
+        // Copied from use in UseSkill
+        var soundEffectAction = _battle.NewAction(0x902,6);
+        soundEffectAction->RunFunc = _battle.PlaySoundEffectActionFunc;
+        var soundEffectData = (PlaySoundEffectActionData*)soundEffectAction->DataPtr;
+        soundEffectData->SoundId = 0xb;
+        soundEffectData->Unk1 = 4;
+        soundEffectData->Unk2 = 2;
+        soundEffectAction->Dependencies[0].Type = 5;
+        soundEffectAction->Dependencies[0].ActionId = drawAction->Id;
+        _battle.StartAction(soundEffectAction, 1);
     }
 
     private delegate void RunRiseAssistDelegate(nuint param1);
