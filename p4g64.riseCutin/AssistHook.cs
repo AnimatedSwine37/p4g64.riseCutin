@@ -1,5 +1,7 @@
 using p4g64.riseCutin.Native;
 using Reloaded.Hooks.Definitions;
+using Reloaded.Hooks.Definitions.Enums;
+using Reloaded.Memory;
 using static p4g64.riseCutin.Utils;
 using static p4g64.riseCutin.Native.Battle;
 
@@ -7,18 +9,33 @@ namespace p4g64.riseCutin;
 
 public unsafe class AssistHook
 {
+    private IAsmHook _showRiseModelHook;
+    private long* _showModelActionId;
+    
     private IHook<RunRiseAssistDelegate> _runAssistHook;
     private Battle _battle;
     
     internal AssistHook(Battle battle, IReloadedHooks hooks)
     {
         _battle = battle;
+        var memory = Memory.Instance;
+        _showModelActionId = (long*)memory.Allocate(sizeof(long)).Address;
         
         SigScan("48 8B C4 48 89 58 ?? 48 89 70 ?? 48 89 78 ?? 55 41 54 41 55 41 56 41 57 48 8D A8 ?? ?? ?? ?? 48 81 EC 60 03 00 00 0F 29 70 ?? 0F 29 78 ?? 48 8B 05 ?? ?? ?? ??", "RunRiseAssist",
             address =>
             {
                 _runAssistHook = hooks.CreateHook<RunRiseAssistDelegate>(RunAssist, address).Activate();
             });
+        
+        SigScan("0F 28 35 ?? ?? ?? ?? 45 33 ED", "RunRiseAssist Show Model Action Call", address =>
+        {
+            string[] function =
+            {
+                "use64",
+                $"mov [qword {(nuint)_showModelActionId}], rax",
+            };
+            _showRiseModelHook = hooks.CreateAsmHook(function, address, AsmHookBehaviour.ExecuteFirst).Activate();
+        });
     }
 
     private void RunAssist(nuint param1)
@@ -32,6 +49,8 @@ public unsafe class AssistHook
             PartyMember = PartyMember.Rise
         };
         var cutinAction = _battle.NewCutinAction(&cutinArgs, 0);
+        cutinAction->Dependencies[0].Type = 5;
+        cutinAction->Dependencies[0].ActionId = *_showModelActionId; // Play the cutin right as Rise's model appears
         _battle.StartAction(cutinAction, 1);
 
         var drawAction = _battle.NewCutinDrawAction(0, 0);
